@@ -78,8 +78,10 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173) (proxies `/api` to the backe
    (`_Serato_`), and Music root. Use **Change** only if you need another path.
    Choose direction (Rekordbox → Serato or reverse), then **Load**.
 2. **Select** — check one or more playlists/crates. Folders select children.
-3. **Convert** — dry-run first. Expand a playlist only if you want track detail.
-   If files are missing, set Music root and use **Heal**, then apply.
+3. **Convert** — dry-run first. Uncheck any playlist you do not want to import
+   (e.g. heal failed). Expand a row only if you want track detail. If files are
+   missing, set Music root and use **Heal**, then apply. After a successful
+   write you get a confirmation with the next step for Serato or Rekordbox.
 
 ### After apply
 

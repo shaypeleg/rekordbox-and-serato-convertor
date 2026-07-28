@@ -15,5 +15,7 @@
 - [x] 2026-07-28 — Connect: Change path instead of Use detected when auto-filled
 - [x] 2026-07-28 — Add simple `start.sh` launcher
 - [x] 2026-07-28 — Update project README for current UI and workflow
+- [x] 2026-07-28 — Convert: allow unselecting playlists before apply
+- [x] 2026-07-28 — Convert: post-apply confirmation with next steps
 - Crate filenames must sanitize `/` — otherwise nested dirs break `list_crates` glob
 - Serato → Rekordbox writes XML for import (safer than encrypted master.db writes)

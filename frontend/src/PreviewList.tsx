@@ -15,27 +15,42 @@ function shortTail(path: string, segments = 2): string {
 
 interface Props {
   playlists: ConvertPlaylistPreview[];
+  includedIds: Set<string>;
   musicRootSet: boolean;
   busy: boolean;
+  onToggleInclude: (id: string) => void;
   onHeal: () => void;
 }
 
-export function PreviewList({ playlists, musicRootSet, busy, onHeal }: Props) {
+export function PreviewList({
+  playlists,
+  includedIds,
+  musicRootSet,
+  busy,
+  onToggleInclude,
+  onHeal,
+}: Props) {
   const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
 
   const totals = useMemo(() => {
     return playlists.reduce(
       (acc, pl) => {
-        acc.tracks += pl.track_count;
-        acc.missing += pl.missing_count;
-        acc.healed += pl.healed_count ?? 0;
+        const included = includedIds.has(pl.source_id);
+        if (included) {
+          acc.included += 1;
+          acc.tracks += pl.track_count;
+          acc.missing += pl.missing_count;
+          acc.healed += pl.healed_count ?? 0;
+        } else {
+          acc.skipped += 1;
+        }
         return acc;
       },
-      { tracks: 0, missing: 0, healed: 0 },
+      { included: 0, skipped: 0, tracks: 0, missing: 0, healed: 0 },
     );
-  }, [playlists]);
+  }, [playlists, includedIds]);
 
-  function toggle(id: string) {
+  function toggleOpen(id: string) {
     setOpenIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -48,14 +63,17 @@ export function PreviewList({ playlists, musicRootSet, busy, onHeal }: Props) {
     <div className="preview-list">
       <div className="preview-summary">
         <span>
-          {playlists.length} playlist{playlists.length === 1 ? "" : "s"} ·{" "}
-          {totals.tracks} tracks
+          {totals.included} of {playlists.length} will import · {totals.tracks}{" "}
+          tracks
         </span>
+        {totals.skipped > 0 && (
+          <span className="muted-inline"> · {totals.skipped} skipped</span>
+        )}
         {totals.missing > 0 ? (
           <span className="missing"> · {totals.missing} missing</span>
-        ) : (
+        ) : totals.included > 0 ? (
           <span className="ok-text"> · all found</span>
-        )}
+        ) : null}
         {totals.healed > 0 && (
           <span className="healed-text"> · {totals.healed} healed</span>
         )}
@@ -64,36 +82,61 @@ export function PreviewList({ playlists, musicRootSet, busy, onHeal }: Props) {
       <ul className="preview-rows">
         {playlists.map((pl) => {
           const open = openIds.has(pl.source_id);
+          const included = includedIds.has(pl.source_id);
           const label = pl.source_path.join(" / ") || pl.source_name;
+          const checkId = `include-${pl.source_id}`;
           return (
-            <li key={pl.source_id} className="preview-row">
+            <li
+              key={pl.source_id}
+              className={`preview-row${included ? "" : " preview-row-skipped"}`}
+            >
               <div className="preview-row-main">
+                <label className="preview-include" htmlFor={checkId}>
+                  <input
+                    id={checkId}
+                    type="checkbox"
+                    className="tree-check"
+                    checked={included}
+                    disabled={busy}
+                    onChange={() => onToggleInclude(pl.source_id)}
+                  />
+                  <span className="sr-only">Include in import</span>
+                </label>
                 <button
                   type="button"
                   className="preview-row-toggle"
                   aria-expanded={open}
-                  onClick={() => toggle(pl.source_id)}
+                  onClick={() => toggleOpen(pl.source_id)}
                 >
                   <span className="chevron" aria-hidden="true">
                     {open ? "▾" : "▸"}
                   </span>
                   <span className="preview-row-name">{label}</span>
                   <span className="preview-row-meta">
-                    {pl.track_count}
-                    {pl.missing_count > 0 ? (
-                      <span className="missing"> · {pl.missing_count} missing</span>
+                    {!included ? (
+                      <span className="muted-inline">skipped</span>
                     ) : (
-                      <span className="ok-text"> · ok</span>
-                    )}
-                    {(pl.healed_count ?? 0) > 0 && (
-                      <span className="healed-text">
-                        {" "}
-                        · {pl.healed_count} healed
-                      </span>
+                      <>
+                        {pl.track_count}
+                        {pl.missing_count > 0 ? (
+                          <span className="missing">
+                            {" "}
+                            · {pl.missing_count} missing
+                          </span>
+                        ) : (
+                          <span className="ok-text"> · ok</span>
+                        )}
+                        {(pl.healed_count ?? 0) > 0 && (
+                          <span className="healed-text">
+                            {" "}
+                            · {pl.healed_count} healed
+                          </span>
+                        )}
+                      </>
                     )}
                   </span>
                 </button>
-                {pl.missing_count > 0 && (
+                {included && pl.missing_count > 0 && (
                   <button
                     type="button"
                     className="ghost preview-row-heal"

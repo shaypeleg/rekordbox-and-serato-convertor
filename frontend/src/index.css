@@ -456,6 +456,124 @@ input[type="text"]:focus {
   background: oklch(0.78 0.14 145 / 0.08);
 }
 
+.apply-confirm {
+  margin: 0 0 1.25rem;
+  padding: 1.35rem 1.35rem 1.25rem;
+  border: 1px solid oklch(0.78 0.14 145 / 0.45);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(
+      ellipse 80% 70% at 0% 0%,
+      oklch(0.78 0.14 145 / 0.12),
+      transparent 55%
+    ),
+    var(--bg-raised);
+  animation: apply-confirm-in 320ms var(--ease) both;
+}
+
+.apply-confirm-kicker {
+  margin: 0 0 0.35rem;
+  color: var(--ok);
+  font-size: var(--text-meta);
+  font-weight: 550;
+}
+
+.apply-confirm-title {
+  margin: 0 0 0.45rem;
+  font-size: var(--text-title);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  outline: none;
+}
+
+.apply-confirm-title:focus-visible {
+  box-shadow: var(--focus);
+  border-radius: 2px;
+}
+
+.apply-confirm-lead {
+  margin: 0 0 0.65rem;
+  font-size: var(--text-lead);
+}
+
+.apply-confirm-next {
+  margin: 0 0 0.75rem;
+  max-width: 42rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.apply-confirm-path {
+  margin: 0 0 0.75rem;
+  font-size: var(--text-meta);
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.apply-confirm-path code {
+  font-family: var(--mono);
+  font-size: var(--text-data);
+  color: var(--ink);
+}
+
+.apply-confirm-list {
+  list-style: none;
+  margin: 0 0 0.85rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  max-height: 10rem;
+  overflow: auto;
+}
+
+.apply-confirm-list li {
+  font-family: var(--mono);
+  font-size: var(--text-data);
+  padding: 0.35rem 0.55rem;
+  background: var(--bg-sunken);
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid var(--line);
+}
+
+.apply-confirm-msg {
+  margin: 0 0 1rem;
+}
+
+.apply-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.apply-details {
+  margin-top: 0.5rem;
+  color: var(--muted);
+  font-size: var(--text-meta);
+}
+
+.apply-details summary {
+  cursor: pointer;
+  margin-bottom: 0.65rem;
+}
+
+@keyframes apply-confirm-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apply-confirm {
+    animation: none;
+  }
+}
+
 .preview-list {
   margin-top: 0.75rem;
   border: 1px solid var(--line);
@@ -492,6 +610,38 @@ input[type="text"]:focus {
   display: flex;
   align-items: stretch;
   gap: 0.25rem;
+}
+
+.preview-row-skipped {
+  opacity: 0.55;
+}
+
+.preview-row-skipped .preview-row-name {
+  text-decoration: line-through;
+  text-decoration-color: oklch(0.55 0.02 250 / 0.7);
+}
+
+.preview-include {
+  display: flex;
+  align-items: center;
+  padding: 0 0.15rem 0 0.7rem;
+  cursor: pointer;
+}
+
+.muted-inline {
+  color: var(--muted);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .preview-row-toggle {

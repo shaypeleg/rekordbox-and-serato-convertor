@@ -2,6 +2,8 @@
 
 ## 2026-07-28
 
+- Convert: show migration-complete confirmation after apply, with next steps.
+- Convert screen: uncheck playlists to skip them on heal/apply (kept visible as skipped).
 - Refresh README: current Connect → Select → Convert flow, heal, start.sh, clone URL.
 - Add `start.sh` to launch the local app (venv + optional UI build + uvicorn).
 - Connect paths: auto-detected values show as read-only with Change (remove redundant Use detected).

@@ -8,6 +8,7 @@ import {
   type PlaylistNode,
   type Side,
 } from "./api";
+import { ApplyConfirm } from "./ApplyConfirm";
 import { PathField } from "./PathField";
 import { PreviewList } from "./PreviewList";
 import {
@@ -116,33 +117,88 @@ export default function App() {
     setTab("connect");
   }
 
+  const applyIds = useMemo(() => {
+    if (!preview) return selectedIds;
+    return new Set(
+      preview.playlists
+        .map((pl) => pl.source_id)
+        .filter((id) => selectedIds.has(id)),
+    );
+  }, [preview, selectedIds]);
+
   const missingTotal = useMemo(() => {
     if (!preview) return 0;
-    return preview.playlists.reduce((sum, pl) => sum + pl.missing_count, 0);
-  }, [preview]);
+    return preview.playlists.reduce(
+      (sum, pl) => (applyIds.has(pl.source_id) ? sum + pl.missing_count : sum),
+      0,
+    );
+  }, [preview, applyIds]);
+
+  function toggleInclude(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   async function runConvert(dryRun: boolean, healMissing = false) {
-    if (selectedIds.size === 0) return;
+    const ids = preview
+      ? preview.playlists
+          .map((pl) => pl.source_id)
+          .filter((id) => selectedIds.has(id))
+      : Array.from(selectedIds);
+    if (ids.length === 0) return;
     setBusy(true);
     setError(null);
     try {
       const result = await api.convert({
         direction,
-        playlist_ids: Array.from(selectedIds),
+        playlist_ids: ids,
         dry_run: dryRun,
         output_xml_path: xmlOut || undefined,
         heal_missing: healMissing || healOnApply,
       });
-      setPreview(result);
+      // Reason: keep unchecked playlists visible so the user can re-include them.
+      setPreview((prev) => {
+        if (!prev) return result;
+        const inResult = new Set(result.playlists.map((pl) => pl.source_id));
+        const skipped = prev.playlists.filter((pl) => !inResult.has(pl.source_id));
+        if (skipped.length === 0) return result;
+        return { ...result, playlists: [...result.playlists, ...skipped] };
+      });
       if (healMissing || (result.heal && result.heal.healed > 0)) {
         setHealOnApply(true);
       }
       setTab("convert");
+      if (!dryRun) {
+        // Reason: land the user on the confirmation after a real write.
+        window.requestAnimationFrame(() => {
+          document.getElementById("apply-confirm-title")?.focus();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      }
     } catch (e) {
       setError(String((e as Error).message || e));
     } finally {
       setBusy(false);
     }
+  }
+
+  const applied = Boolean(preview && !preview.dry_run);
+
+  function startOver() {
+    setSelectedIds(new Set());
+    setPreview(null);
+    setHealOnApply(false);
+    setTab("connect");
+  }
+
+  function convertMore() {
+    setPreview(null);
+    setHealOnApply(false);
+    setTab("select");
   }
 
   const tabs: { id: Tab; label: string; enabled: boolean }[] = [
@@ -296,112 +352,144 @@ export default function App() {
 
         {tab === "convert" && (
           <section className="panel-simple wide" aria-label="Convert">
-            <h2>Convert</h2>
-            {!preview ? (
-              <p className="lead">
-                {selection.count} playlist{selection.count === 1 ? "" : "s"}{" "}
-                ready. Preview the mapping, then apply.
-              </p>
-            ) : (
-              <div
-                className={`message${preview.dry_run ? " warn" : " ok"}`}
-                role="status"
-              >
-                {preview.message}
-              </div>
-            )}
-
-            {direction === "serato_to_rekordbox" && (
-              <div className="field">
-                <label htmlFor="xmlout">Output XML path</label>
-                <input
-                  id="xmlout"
-                  type="text"
-                  value={xmlOut}
-                  onChange={(e) => setXmlOut(e.target.value)}
-                  placeholder="/Users/you/Music/dj-converter-export.xml"
+            {applied && preview ? (
+              <>
+                <ApplyConfirm
+                  direction={direction}
+                  destLabel={destLabel}
+                  playlists={preview.playlists.filter((pl) =>
+                    selectedIds.has(pl.source_id),
+                  )}
+                  message={preview.message}
+                  onConvertMore={convertMore}
+                  onStartOver={startOver}
                 />
-              </div>
-            )}
-
-            {preview && missingTotal > 0 && (
-              <div className="message warn heal-banner" role="status">
-                <div>
-                  <strong>{missingTotal} missing file{missingTotal === 1 ? "" : "s"}</strong>
-                  <p className="hint" style={{ margin: "0.35rem 0 0" }}>
-                    Scan your music root for matching filenames and rematch tracks
-                    before applying.
-                    {!paths.music_root &&
-                      " Set a Music root on the Connect tab first."}
+                <details className="apply-details">
+                  <summary>What was written</summary>
+                  <PreviewList
+                    playlists={preview.playlists}
+                    includedIds={applyIds}
+                    musicRootSet={Boolean(paths.music_root)}
+                    busy
+                    onToggleInclude={() => undefined}
+                    onHeal={() => undefined}
+                  />
+                </details>
+              </>
+            ) : (
+              <>
+                <h2>Convert</h2>
+                {!preview ? (
+                  <p className="lead">
+                    {selection.count} playlist{selection.count === 1 ? "" : "s"}{" "}
+                    ready. Preview the mapping, then apply.
                   </p>
+                ) : (
+                  <div className="message warn" role="status">
+                    {preview.message}
+                  </div>
+                )}
+
+                {direction === "serato_to_rekordbox" && (
+                  <div className="field">
+                    <label htmlFor="xmlout">Output XML path</label>
+                    <input
+                      id="xmlout"
+                      type="text"
+                      value={xmlOut}
+                      onChange={(e) => setXmlOut(e.target.value)}
+                      placeholder="/Users/you/Music/dj-converter-export.xml"
+                    />
+                  </div>
+                )}
+
+                {preview && missingTotal > 0 && (
+                  <div className="message warn heal-banner" role="status">
+                    <div>
+                      <strong>
+                        {missingTotal} missing file
+                        {missingTotal === 1 ? "" : "s"}
+                      </strong>
+                      <p className="hint" style={{ margin: "0.35rem 0 0" }}>
+                        Scan your music root for matching filenames and rematch
+                        tracks before applying.
+                        {!paths.music_root &&
+                          " Set a Music root on the Connect tab first."}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="primary"
+                      disabled={busy || !paths.music_root}
+                      onClick={() => runConvert(true, true)}
+                    >
+                      {busy ? "Scanning…" : "Scan & heal missing"}
+                    </button>
+                  </div>
+                )}
+
+                {preview?.heal && (
+                  <p className="hint">
+                    Last heal: indexed {preview.heal.scanned_files} files ·
+                    rematched {preview.heal.healed}/{preview.heal.attempted}
+                    {preview.heal.still_missing > 0
+                      ? ` · ${preview.heal.still_missing} still missing`
+                      : ""}
+                    {preview.heal.ambiguous > 0
+                      ? ` · ${preview.heal.ambiguous} ambiguous`
+                      : ""}
+                  </p>
+                )}
+
+                {preview && (
+                  <PreviewList
+                    playlists={preview.playlists}
+                    includedIds={applyIds}
+                    musicRootSet={Boolean(paths.music_root)}
+                    busy={busy}
+                    onToggleInclude={toggleInclude}
+                    onHeal={() => runConvert(true, true)}
+                  />
+                )}
+
+                <div className="row sticky-actions">
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() => setTab("select")}
+                  >
+                    ← Select
+                  </button>
+                  {!preview && (
+                    <button
+                      type="button"
+                      className="primary"
+                      disabled={selectedIds.size === 0 || busy}
+                      onClick={() => runConvert(true)}
+                    >
+                      Preview
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="primary"
+                    disabled={applyIds.size === 0 || busy}
+                    onClick={() =>
+                      runConvert(false, healOnApply || missingTotal > 0)
+                    }
+                    title={
+                      missingTotal > 0 || healOnApply
+                        ? "Will scan & heal missing files, then write"
+                        : undefined
+                    }
+                  >
+                    {missingTotal > 0 || healOnApply
+                      ? `Heal & apply ${applyIds.size} to ${destLabel}`
+                      : `Apply ${applyIds.size} to ${destLabel}`}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={busy || !paths.music_root}
-                  onClick={() => runConvert(true, true)}
-                >
-                  {busy ? "Scanning…" : "Scan & heal missing"}
-                </button>
-              </div>
+              </>
             )}
-
-            {preview?.heal && (
-              <p className="hint">
-                Last heal: indexed {preview.heal.scanned_files} files · rematched{" "}
-                {preview.heal.healed}/{preview.heal.attempted}
-                {preview.heal.still_missing > 0
-                  ? ` · ${preview.heal.still_missing} still missing`
-                  : ""}
-                {preview.heal.ambiguous > 0
-                  ? ` · ${preview.heal.ambiguous} ambiguous`
-                  : ""}
-              </p>
-            )}
-
-            {preview && (
-              <PreviewList
-                playlists={preview.playlists}
-                musicRootSet={Boolean(paths.music_root)}
-                busy={busy}
-                onHeal={() => runConvert(true, true)}
-              />
-            )}
-
-            <div className="row sticky-actions">
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => setTab("select")}
-              >
-                ← Select
-              </button>
-              {!preview && (
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={selectedIds.size === 0 || busy}
-                  onClick={() => runConvert(true)}
-                >
-                  Preview
-                </button>
-              )}
-              <button
-                type="button"
-                className="primary"
-                disabled={selectedIds.size === 0 || busy}
-                onClick={() => runConvert(false, healOnApply || missingTotal > 0)}
-                title={
-                  missingTotal > 0 || healOnApply
-                    ? "Will scan & heal missing files, then write"
-                    : undefined
-                }
-              >
-                {missingTotal > 0 || healOnApply
-                  ? `Heal & apply to ${destLabel}`
-                  : `Apply to ${destLabel}`}
-              </button>
-            </div>
           </section>
         )}
       </main>
