@@ -1,21 +1,42 @@
 # DJ Playlist Converter
 
 Local web app to convert **Rekordbox playlists ↔ Serato crates** by mapping track
-file paths and folder hierarchy. Hot cues that already live in your audio files
-are left alone and typically show up in both apps automatically.
+file paths and folder hierarchy. Audio files are never moved or copied. Hot cues
+that already live in your audio tags are left alone and usually show up in both
+apps when they point at the same files.
+
+Repo: [github.com/shaypeleg/rekordbox-and-serato-convertor](https://github.com/shaypeleg/rekordbox-and-serato-convertor)
+
+## What it does
+
+| Direction | Reads | Writes |
+|-----------|--------|--------|
+| Rekordbox → Serato | `master.db` (preferred) or exported XML | `_Serato_/Subcrates/*.crate` (`%%` nested folders) |
+| Serato → Rekordbox | `_Serato_/Subcrates/*.crate` | Rekordbox XML for **File → Import → rekordbox xml** |
+
+Also:
+
+- Auto-detects common Rekordbox / Serato / Music paths on this Mac
+- Multi-select playlists (folders select everything inside)
+- Dry-run preview before writing
+- Backs up existing crates before overwrite
+- **Heal** — rescan your Music root by filename when tracks show as missing
 
 ## Requirements
 
+- macOS (paths and library locations are Mac-oriented)
 - Python 3.11+
-- Node.js 18+ (for the UI)
-- Rekordbox and/or Serato installed on this machine
-- Close **Serato** before writing crates
+- Node.js 18+ (to build the UI once)
+- Rekordbox and/or Serato on this machine
+- Close **Serato** before applying crates
 
-## Setup
+## Setup (once)
 
 ```bash
-cd "/path/to/DJ app converter"
-python3.13 -m venv venv
+git clone https://github.com/shaypeleg/rekordbox-and-serato-convertor.git
+cd rekordbox-and-serato-convertor
+
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
@@ -29,35 +50,51 @@ cd frontend && npm install && npm run build && cd ..
 ./start.sh
 ```
 
-Open http://127.0.0.1:8000 (override with `PORT=8080 ./start.sh`).
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
-Or manually:
+- Custom port: `PORT=8080 ./start.sh`
+- If `frontend/dist` is missing, `start.sh` builds the UI first
+
+Manual start:
 
 ```bash
 source venv/bin/activate
-PYTHONPATH=src uvicorn dj_converter.main:app --reload --port 8000
+PYTHONPATH=src uvicorn dj_converter.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Dev UI with hot reload (optional):
+### Frontend hot reload (optional)
+
+With the API running:
 
 ```bash
-# API as above, then:
 cd frontend && npm run dev
 ```
 
-Open http://127.0.0.1:5173 (proxies `/api` to the backend).
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173) (proxies `/api` to the backend).
 
 ## Usage
 
-1. **Connect** — paste or use detected paths for Rekordbox (`master.db` or XML)
-   and Serato (`~/Music/_Serato_`).
-2. **Browse** — pick a playlist or crate (folders convert all child playlists).
-3. **Preview** — check path mappings and missing files.
-4. **Apply**
-   - Rekordbox → Serato: writes `.crate` files under `_Serato_/Subcrates/`
-     (nested folders use `%%` in the filename). Re-open Serato.
-   - Serato → Rekordbox: writes an XML file. In Rekordbox use
-     **File → Import → rekordbox xml**, then import the playlist.
+1. **Connect** — confirm detected Rekordbox (`master.db` or XML), Serato
+   (`_Serato_`), and Music root. Use **Change** only if you need another path.
+   Choose direction (Rekordbox → Serato or reverse), then **Load**.
+2. **Select** — check one or more playlists/crates. Folders select children.
+3. **Convert** — dry-run first. Expand a playlist only if you want track detail.
+   If files are missing, set Music root and use **Heal**, then apply.
+
+### After apply
+
+- **Rekordbox → Serato:** reopen Serato so crates refresh.
+- **Serato → Rekordbox:** in Rekordbox use **File → Import → rekordbox xml**,
+  then import the playlist from that XML.
+
+## Project layout
+
+```
+src/dj_converter/   FastAPI app, Serato/Rekordbox modules, convert + heal
+frontend/           Vite + React UI (built into frontend/dist)
+start.sh            Launch script
+PLANNING.md         Architecture notes
+```
 
 ## Tests
 
@@ -67,9 +104,9 @@ PYTHONPATH=src pytest src/dj_converter -v
 ruff check src
 ```
 
-## Notes
+## Safety & limits
 
-- Audio files are never moved or copied — only playlist/crate membership.
-- Existing destination crates are backed up under `_Serato_/Backups/dj-converter/`.
-- Streaming-only tracks without local files will appear as missing.
-- Writing directly into encrypted Rekordbox `master.db` is out of scope for v1.
+- Playlist/crate membership only — not cues, beatgrids, or smart-playlist rules
+- Destination crates are backed up under `_Serato_/Backups/dj-converter/`
+- Streaming-only tracks without local files stay missing
+- Does **not** write into encrypted Rekordbox `master.db` (XML import only)
