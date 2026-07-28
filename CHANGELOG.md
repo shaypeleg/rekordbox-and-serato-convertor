@@ -2,6 +2,7 @@
 
 ## 2026-07-28
 
+- Add `start.sh` to launch the local app (venv + optional UI build + uvicorn).
 - Connect paths: auto-detected values show as read-only with Change (remove redundant Use detected).
 - Distill Convert preview: playlists collapse by default; open for filename-first track details (no dual full-path tables).
 - Add Scan & heal for missing tracks: index music root by filename and rematch before convert.

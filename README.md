@@ -25,14 +25,18 @@ cd frontend && npm install && npm run build && cd ..
 
 ## Run
 
-Terminal 1 — API (serves built UI from `frontend/dist` when present):
+```bash
+./start.sh
+```
+
+Open http://127.0.0.1:8000 (override with `PORT=8080 ./start.sh`).
+
+Or manually:
 
 ```bash
 source venv/bin/activate
 PYTHONPATH=src uvicorn dj_converter.main:app --reload --port 8000
 ```
-
-Open http://127.0.0.1:8000
 
 Dev UI with hot reload (optional):
 
