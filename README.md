@@ -86,8 +86,14 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173) (proxies `/api` to the backe
 ### After apply
 
 - **Rekordbox → Serato:** reopen Serato so crates refresh.
-- **Serato → Rekordbox:** in Rekordbox use **File → Import → rekordbox xml**,
-  then import the playlist from that XML.
+- **Serato → Rekordbox:** writes an XML file (default
+  `~/Music/dj-converter-export.xml`). Rekordbox does **not** import it
+  automatically:
+  1. Preferences → **Advanced → Database** → **rekordbox xml → Imported Library**
+     → Browse to that XML file
+  2. Preferences → **View → Layout** → enable **rekordbox xml**
+  3. In the browser tree open **rekordbox xml → Playlists**, then drag the
+     playlist into your **Playlists** folder
 
 ## Project layout
 

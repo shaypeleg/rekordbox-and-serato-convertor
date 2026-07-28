@@ -2,6 +2,7 @@
 
 ## 2026-07-28
 
+- Fix Serato → Rekordbox guidance: Rekordbox XML bridge steps (not File→Import); Reveal in Finder.
 - Convert: show migration-complete confirmation after apply, with next steps.
 - Convert screen: uncheck playlists to skip them on heal/apply (kept visible as skipped).
 - Refresh README: current Connect → Select → Convert flow, heal, start.sh, clone URL.

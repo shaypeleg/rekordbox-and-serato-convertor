@@ -360,7 +360,8 @@ def run_convert(request: ConvertRequest) -> ConvertResult:
             heal=heal_model,
             message=_heal_message(
                 heal_stats,
-                "Dry run: no XML written. Apply to create an importable Rekordbox XML.",
+                "Dry run: no XML written. Apply writes an XML file you point "
+                "Rekordbox at (Preferences → Advanced → Database → Imported Library).",
             ),
         )
     out = request.output_xml_path
@@ -368,6 +369,7 @@ def run_convert(request: ConvertRequest) -> ConvertResult:
         base = Path(paths.serato_path or Path.home() / "Music")
         out = str(Path(base).parent / "dj-converter-export.xml")
     previews = apply_serato_to_rekordbox(playlists, out, healed_paths)
+    written = previews[0].written_path if previews else out
     return ConvertResult(
         direction=request.direction,
         dry_run=False,
@@ -376,8 +378,10 @@ def run_convert(request: ConvertRequest) -> ConvertResult:
         message=_heal_message(
             heal_stats,
             (
-                f"XML written to {out}. In Rekordbox: File → Import → "
-                "rekordbox xml, then Import Playlist."
+                f"XML written to {written}. Rekordbox does not auto-import it — "
+                "set Preferences → Advanced → Database → rekordbox xml → "
+                "Imported Library to this file, enable View → rekordbox xml, "
+                "then drag playlists into your Playlists folder."
             ),
         ),
     )

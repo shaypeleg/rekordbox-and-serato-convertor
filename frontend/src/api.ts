@@ -107,4 +107,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  reveal: (path: string) =>
+    request<{ status: string; path: string }>("/api/system/reveal", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    }),
 };

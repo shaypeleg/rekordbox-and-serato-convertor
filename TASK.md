@@ -17,5 +17,6 @@
 - [x] 2026-07-28 — Update project README for current UI and workflow
 - [x] 2026-07-28 — Convert: allow unselecting playlists before apply
 - [x] 2026-07-28 — Convert: post-apply confirmation with next steps
+- [x] 2026-07-28 — Clarify Serato→Rekordbox XML import (Preferences bridge)
 - Crate filenames must sanitize `/` — otherwise nested dirs break `list_crates` glob
 - Serato → Rekordbox writes XML for import (safer than encrypted master.db writes)

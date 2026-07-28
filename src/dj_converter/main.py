@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 from dj_converter.features.convert.service import ConvertError, run_convert
 from dj_converter.features.libraries.handlers import connect_libraries, detect_libraries
@@ -108,6 +110,28 @@ def api_convert_apply(body: ConvertRequest) -> dict:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+class RevealRequest(BaseModel):
+    """Request to reveal a local path in Finder/Explorer."""
+
+    path: str = Field(..., min_length=1)
+
+
+@app.post("/api/system/reveal")
+def api_reveal_path(body: RevealRequest) -> dict[str, str]:
+    """Reveal a file or folder in the OS file manager (macOS Finder)."""
+    target = Path(body.path).expanduser().resolve()
+    if not target.exists():
+        raise HTTPException(status_code=404, detail=f"Path not found: {target}")
+    try:
+        # Reason: macOS Finder reveal; Linux falls back to opening the parent.
+        subprocess.run(["open", "-R", str(target)], check=True)
+    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+        raise HTTPException(
+            status_code=500, detail=f"Could not reveal path: {exc}"
+        ) from exc
+    return {"status": "ok", "path": str(target)}
 
 
 # Serve built frontend if present
